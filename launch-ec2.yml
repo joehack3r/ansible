@@ -1,0 +1,45 @@
+---
+# This playbook consists of one play:
+# 1. Launching an instance
+
+# The play operates on the local (Ansible control) machine.
+
+- name: Start instance(s)
+  hosts: localhost
+  gather_facts: False
+
+  vars_files:
+    - ~/vars_for_ansible # Works with https://github.com/joehack3r/aws/blob/dev/cloudformation/templates/ansibleControlDefaultVpcAmazonLinux.yml 
+  vars:
+    instance_type: t2.nano
+
+  vars_prompt:
+    - name: "ami"
+      prompt: "What is the Amazon Machine Image (AMI) ID to use (Default is: Amazon Linux AMI 2016.09.1 (HVM), SSD Volume Type)"
+      default: "ami-0b33d91d" # us-east-1
+      private: no
+
+    - name: "instance_type"
+      prompt: "What instance type would you like to use?"
+      default: "t2.nano"
+      private: no
+
+  # Launch instances with the following parameters.  Register the output.
+  tasks:
+    - name: Launch instance 
+      ec2:
+        key_name: "{{ KEYPAIR }}"
+        vpc_subnet_id: "{{ SUBNET_ID }}" # needed if using non-default VPC
+        group_id: "{{ SECURITY_GROUP_ID }}"
+        instance_type: "{{ instance_type }}"
+        instance_profile_name: "{{ IAM_INSTANCE_PROFILE }}"
+        volumes:
+        - device_name: /dev/xvda
+          volume_type: gp2
+          volume_size: 32
+          delete_on_termination: true
+        image: "{{ ami }}"
+        count: "1"
+        region: "{{ REGION }}"
+        wait: true
+      register: ec2
